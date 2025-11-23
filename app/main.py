@@ -4,6 +4,9 @@ This sets up the FastAPI app, registers all routers, and configures CORS.
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse
+import os
 
 from app.routers import auth, workflows, steps, tasks, analytics, websocket
 
@@ -13,6 +16,11 @@ app = FastAPI(
     description="Backend API for workflow automation with real-time updates",
     version="1.0.0"
 )
+
+# Mount static files directory (for the landing page)
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+if os.path.exists(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 # Configure CORS (allow frontend to access API)
 # In production, restrict origins to your actual frontend URL
@@ -46,20 +54,37 @@ async def startup_event():
     """
     # Import here to avoid circular imports
     from app.core.database import engine, Base
-    Base.metadata.create_all(bind=engine)
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        # If database connection fails, log but don't crash
+        # This allows the landing page to still be accessible
+        print(f"Warning: Could not connect to database: {e}")
+        print("The API landing page is still accessible, but API endpoints will not work until database is connected.")
 
 
-@app.get("/")
-def read_root():
+@app.get("/", response_class=HTMLResponse)
+async def read_root():
     """
-    Root endpoint - simple health check.
+    Root endpoint - serves landing page with API information.
     """
-    return {
-        "message": "Smart Workflow Assistant API",
-        "status": "running",
-        "docs": "/docs",
-        "version": "1.0.0"
-    }
+    static_dir = os.path.join(os.path.dirname(__file__), "static")
+    index_path = os.path.join(static_dir, "index.html")
+    
+    # If HTML file exists, serve it
+    if os.path.exists(index_path):
+        with open(index_path, "r") as f:
+            return f.read()
+    
+    # Fallback to JSON response if HTML not found
+    return """
+    <html>
+        <body>
+            <h1>Smart Workflow Assistant API</h1>
+            <p>API is running. Visit <a href="/docs">/docs</a> for API documentation.</p>
+        </body>
+    </html>
+    """
 
 
 @app.get("/health")

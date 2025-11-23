@@ -53,11 +53,12 @@ def client():
 
 
 def test_root_endpoint(client):
-    """Test the root endpoint."""
+    """Test the root endpoint returns HTML landing page."""
     response = client.get("/")
     assert response.status_code == 200
-    assert "message" in response.json()
-    assert response.json()["status"] == "running"
+    # Root endpoint now returns HTML landing page
+    assert "text/html" in response.headers.get("content-type", "")
+    assert "Smart Workflow Assistant" in response.text
 
 
 def test_health_check(client):
