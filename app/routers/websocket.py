@@ -57,20 +57,28 @@ async def workflow_websocket(
         
         # Background task to listen for Redis messages
         async def redis_listener():
-            """Listen for Redis pub/sub messages and forward to WebSocket."""
-            for message in pubsub.listen():
-                if message["type"] == "message":
-                    try:
-                        # Parse and forward the message
-                        data = json.loads(message["data"])
-                        await websocket.send_json(data)
-                    except json.JSONDecodeError:
-                        # If not JSON, send as text
-                        await websocket.send_text(message["data"])
-                
-                # Check if WebSocket is still open
-                # This is a simple approach; in production use more robust checking
-                await asyncio.sleep(0.1)
+            """
+            Listen for Redis pub/sub messages and forward to WebSocket.
+            
+            Note: This uses blocking pubsub.listen() in a simple implementation.
+            For production, consider using an async Redis library like aioredis
+            or running the listener in a separate thread/process.
+            """
+            try:
+                for message in pubsub.listen():
+                    if message["type"] == "message":
+                        try:
+                            # Parse and forward the message
+                            data = json.loads(message["data"])
+                            await websocket.send_json(data)
+                        except json.JSONDecodeError:
+                            # If not JSON, send as text
+                            await websocket.send_text(message["data"])
+                    
+                    # Yield control to event loop periodically
+                    await asyncio.sleep(0.01)
+            except Exception as e:
+                print(f"Redis listener error: {e}")
         
         # Start listening for Redis messages in background
         listener_task = asyncio.create_task(redis_listener())

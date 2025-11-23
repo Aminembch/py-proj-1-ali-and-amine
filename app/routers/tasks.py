@@ -4,7 +4,7 @@ Tasks have a strict state machine: pending -> in_progress -> blocked/done.
 Real-time updates are published to Redis when task state changes.
 """
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
