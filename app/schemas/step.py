@@ -30,5 +30,4 @@ class StepResponse(BaseModel):
     expected_duration_hours: float
     assigned_user_id: Optional[int] = None
     
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}

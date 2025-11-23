@@ -3,6 +3,7 @@ API endpoint tests using FastAPI TestClient.
 Tests authentication and basic CRUD operations.
 """
 import pytest
+from unittest.mock import Mock, patch
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -28,6 +29,12 @@ def override_get_db():
         db.close()
 
 
+# Mock Redis for tests (no Redis server needed)
+mock_redis = Mock()
+mock_redis.publish = Mock(return_value=None)
+mock_redis.sismember = Mock(return_value=False)
+mock_redis.sadd = Mock(return_value=None)
+
 app.dependency_overrides[get_db] = override_get_db
 
 
@@ -37,7 +44,9 @@ def client():
     # Create tables
     Base.metadata.create_all(bind=engine)
     
-    yield TestClient(app)
+    # Patch Redis client to use mock
+    with patch('app.core.redis_client.redis_client', mock_redis):
+        yield TestClient(app)
     
     # Drop tables after test
     Base.metadata.drop_all(bind=engine)

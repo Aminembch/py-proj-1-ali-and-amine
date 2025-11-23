@@ -6,12 +6,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.routers import auth, workflows, steps, tasks, analytics, websocket
-from app.core.database import engine, Base
-
-# Create all database tables
-# In production, you'd use Alembic migrations instead
-# But this ensures tables exist on startup
-Base.metadata.create_all(bind=engine)
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -42,6 +36,17 @@ app.include_router(analytics.router)
 
 # WebSocket router
 app.include_router(websocket.router)
+
+
+@app.on_event("startup")
+async def startup_event():
+    """
+    Create database tables on startup.
+    In production, use Alembic migrations instead.
+    """
+    # Import here to avoid circular imports
+    from app.core.database import engine, Base
+    Base.metadata.create_all(bind=engine)
 
 
 @app.get("/")

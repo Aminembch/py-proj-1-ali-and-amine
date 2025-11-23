@@ -37,7 +37,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     Create a JWT access token.
     
     Args:
-        data: Dictionary with claims to encode (e.g., {"sub": "user@example.com"})
+        data: Dictionary with claims to encode (e.g., {"sub": "user_id"})
         expires_delta: Optional expiration time delta
     
     Returns:
@@ -50,6 +50,9 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
         expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     
     to_encode.update({"exp": expire})
+    # Ensure sub is a string (JWT standard requires this)
+    if "sub" in to_encode:
+        to_encode["sub"] = str(to_encode["sub"])
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 
@@ -82,10 +85,12 @@ async def get_current_user(
     
     try:
         payload = decode_access_token(token)
-        user_id: int = payload.get("sub")
-        if user_id is None:
+        user_id_str: str = payload.get("sub")
+        if user_id_str is None:
             raise credentials_exception
-    except JWTError:
+        # Convert sub back to integer (it's stored as string in JWT)
+        user_id = int(user_id_str)
+    except (JWTError, ValueError, TypeError):
         raise credentials_exception
     
     # Import here to avoid circular dependency

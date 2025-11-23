@@ -27,8 +27,7 @@ class UserResponse(BaseModel):
     role: str
     created_at: datetime
     
-    class Config:
-        from_attributes = True  # Allows converting SQLAlchemy models to Pydantic
+    model_config = {"from_attributes": True}  # Allows converting SQLAlchemy models to Pydantic
 
 
 class Token(BaseModel):
